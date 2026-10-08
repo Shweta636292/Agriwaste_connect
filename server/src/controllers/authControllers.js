@@ -11,6 +11,8 @@ const registerSchema = z.object({
   role: z.enum(["FARMER", "INDUSTRY"]), // ADMIN can never self-register
   location: z.string().trim().min(2),
   companyName: z.string().trim().optional(),
+  businessType: z.string().trim().max(100).optional(),
+  farmDetails: z.string().trim().max(300).optional(),
 });
 
 const loginSchema = z.object({
@@ -30,6 +32,8 @@ const formatUser = (user) => ({
   role: user.role,
   location: user.location,
   companyName: user.companyName,
+  businessType: user.businessType,
+  farmDetails: user.farmDetails,
   isVerified: user.isVerified,
 });
 
@@ -62,7 +66,7 @@ export const register = async (req, res, next) => {
     }
 
     const hashed = await bcrypt.hash(data.password, 12);
-    const user = await User.create({ ...data, password: hashed });
+    const user = await User.create({ ...data, username: data.email, password: hashed });
 
     res.status(201).json({
       success: true,
@@ -70,6 +74,9 @@ export const register = async (req, res, next) => {
       user: formatUser(user),
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "Email or username already registered" });
+    }
     next(err);
   }
 };
